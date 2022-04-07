@@ -43,7 +43,6 @@ class Mls_scrapy():
     def _getCityDetail(self,cityName):
         url = f"https://api.globallistings.com/locations?category_id=1&transaction_type_id=1&keyword={cityName}"
         response = requests.get(url=url,headers=self.headers)
-        print(response.text)
         return response.json()
 
     def getHouse(self,cityName):
@@ -56,16 +55,22 @@ class Mls_scrapy():
         self.getHouse_list(cityDetail,1)
 
     def getHouse_list(self,cityDetail,page_num):
-        country_id = cityDetail['country_id']
-        region_id = cityDetail['region_id']
-        city_id = cityDetail['city_id']
+        country_id = cityDetail[0]['country_id']
+        region_id = cityDetail[0]['region_id']
+        city_id = cityDetail[0]['city_id']
         # location_str = cityDetail['location_str']
 
         api = f"https://api.globallistings.com/search?bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn={page_num}&pz=100&sort=package_id&sort_dir=desc&category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=100&sort=package_id&sort_dir=desc"
         response = requests.get(url=api,headers=self.headers)
         print(response.text)
 
+    def getHouseDetail(self,house_listId):
+        url = f"https://api.globallistings.com/listing?listing_id={house_listId}&listing_id={house_listId}"
+        response = requests.get(url=url,headers=self.headers)
+        detail_link = response.json()['data']['web_link']
+        print(detail_link)
+
 
 if __name__ == '__main__':
     spider = Mls_scrapy("1")
-    spider.getHouse("Yulee")
+    spider.getHouseDetail("6931721")
