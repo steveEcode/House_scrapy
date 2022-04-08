@@ -52,7 +52,16 @@ class Mls_scrapy():
         '''
 
         cityDetail = self._getCityDetail(cityName)
-        self.getHouse_list(cityDetail,1)
+        result = []
+        page_num = 1
+        while True:
+            house_list,has_more = self.getHouse_list(cityDetail,page_num)
+            result += house_list
+            if has_more == False:
+                break
+            else:
+                page_num += 1
+        return result
 
     def getHouse_list(self,cityDetail,page_num):
         country_id = cityDetail[0]['country_id']
@@ -62,15 +71,42 @@ class Mls_scrapy():
 
         api = f"https://api.globallistings.com/search?bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn={page_num}&pz=100&sort=package_id&sort_dir=desc&category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=100&sort=package_id&sort_dir=desc"
         response = requests.get(url=api,headers=self.headers)
-        print(response.text)
+        return self.parseHouseData(response,page_num)
 
-    def getHouseDetail(self,house_listId):
-        url = f"https://api.globallistings.com/listing?listing_id={house_listId}&listing_id={house_listId}"
-        response = requests.get(url=url,headers=self.headers)
-        detail_link = response.json()['data']['web_link']
-        print(detail_link)
+    def parseHouseData(self,response,page_num):
+        '''
+        :param response:
+        :return: house_list,has_more
+        '''
 
+        total_page = int(response.json()['meta']['page_number'])
+        if page_num < total_page:
+            has_more = True
+        else:
+            has_more = False
+
+        addressCity = response.json()['meta']['city_name']
+        house_list = []
+        for house in response.json()['listings']:
+            house_list.append(
+                {
+                    "house_id":house['listing_id'],
+                    "detailUrl":'https://www.mls.com/Listings.mvc?lid=' + house['listing_id'],
+                    "unformattedPrice":house['price'],
+                    "address":house['street_address'],
+                    "addressCity":addressCity,
+                    "addressState":house['location'],
+                    "beds":house['bedrooms'],
+                    "bathrooms":house['bathrooms'],
+                    "area":"Unknown",
+                    "variableData":"Unknown"
+                }
+            )
+
+        return house_list,has_more
 
 if __name__ == '__main__':
+    import json
     spider = Mls_scrapy("1")
-    spider.getHouseDetail("6931721")
+    houses = spider.getHouse("Fernandina Beach")
+    print(json.dumps(houses))
