@@ -99,14 +99,22 @@ class Mls_scrapy():
                     "beds":house['bedrooms'],
                     "bathrooms":house['bathrooms'],
                     "area":"Unknown",
-                    "variableData":"Unknown"
+                    "latitude":house['latitude'],
+                    "longitude":house['longitude'],
+                    "Zipcode":"None"
                 }
             )
 
         return house_list,has_more
 
 if __name__ == '__main__':
-    import json
-    spider = Mls_scrapy("1")
-    houses = spider.getHouse("Fernandina Beach")
-    print(json.dumps(houses))
+    from Excel_Tools.GenExcels import Excel
+    city_list = ["Bryceville","Callahan","Yulee","Hilliard","Fernandina Beach"]
+    houses = []
+
+    for city in city_list:
+        print(city)
+        spider = Mls_scrapy("1")
+        houses += spider.getHouse(city)
+    csv_path = r'D:\english_课程\demo.csv'
+    Excel(csv_path).gen_excel(houses)
