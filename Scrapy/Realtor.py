@@ -43,7 +43,11 @@ class Realtor_spider(Scrapy_Abstract):
 
     # Overwrite
     def getHouse(self,zipCode,house_type):
-        ...
+        if house_type == "sell":
+            spider = self.getHouseSell
+        elif house_type == 'rent':
+            spider = self.getHouseRent
+        return spider(zipCode)
 
     def getHouseRent(self,zipCode):
         city, state_code,lon,lat = self._getCityAndState(zipCode)
@@ -62,11 +66,10 @@ class Realtor_spider(Scrapy_Abstract):
             api = "https://www.realtor.com/rentals/api/v1/hestia?client_id=rdc-x-rental"
             response = requests.post(url=api,data=json.dumps(body),headers=self.headers)
             print(f'Geting the response offset {offset}')
-            h,has_more = self.parseBySellHouseList(response,zipCode)
+            h,has_more = self.parseHouseList(response,zipCode)
             house_list += h
             offset += 100
         return house_list
-
 
     def getHouseSell(self,zipCode):
         city,state_code,lon,lat = self._getCityAndState(zipCode)
@@ -90,13 +93,13 @@ class Realtor_spider(Scrapy_Abstract):
             # exit()
             print(f'Geting the response offset {offset}')
             response = requests.post(headers=self.headers,data=body,url=api)
-            h,has_more = self.parseBySellHouseList(response,zipCode)
+            h,has_more = self.parseHouseList(response,zipCode)
             house_list += h
             offset += 100
         print(len(house_list))
         return house_list
 
-    def parseBySellHouseList(self,response,zipCode):
+    def parseHouseList(self,response,zipCode):
         has_more = True
         if response.json()['data']['home_search']['count'] == 0:
             has_more = False
@@ -126,41 +129,16 @@ class Realtor_spider(Scrapy_Abstract):
             })
         return house_list,has_more
 
-    def parseByRentHouseList(self,response,zipCode):
-        has_more = True
-        if response.json()['data']['home_search']['count'] == 0:
-            has_more = False
-        house_list = []
-        for house in response.json()['data']['home_search']['result']:
-            if house['location']['address']['coordinate'] == None:
-                lat = "None"
-                lon = "None"
-            else:
-                lat = house['location']['address']['coordinate']['lat']
-                lon = house['location']['address']['coordinate']['lon']
-            house_list.append({
-                "house_id": house['property_id'],
-                "detailUrl": "https://www.realtor.com/realestateandhomes-detail/" + house['permalink'],
-                "unformattedPrice": house['list_price_max'],
-                "address": house['location']['address']['line'],
-                "addressCity": house['location']['address']['city'],
-                "addressState": house['location']['address']['state_code'],
-                "beds": house['description']['beds'],
-                "bathrooms": house['description']['baths'],
-                "area": house['description']['sqft'],
-                "latitude": lat,
-                "longitude": lon,
-                "Zipcode": zipCode,
-                "homeStatus": house['status']
-            })
-
-
 
 if __name__ == '__main__':
+    zip_code_list = [32009, 32011, 32034, 32035, 32041, 32046, 32097]
+    house_type_list = ['sell','rent']
     rs = Realtor_spider()
-    # rs.getHouseRent(32097)
-    house_list = rs.getHouseRent(32097)
-    excel = Excel(r"D:\english_课程\House_scrapy\realtor_rent.xlsx")
+    house_list = []
+    for zipCode in zip_code_list:
+        for house_type in house_list:
+            house_list += rs.getHouse(zipCode,house_type)
+    excel = Excel(r"D:\english_课程\House_scrapy\realtor.xlsx")
     excel.gen_excel(house_list)
 
 
