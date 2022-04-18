@@ -44,8 +44,10 @@ class Realtor_spider(Scrapy_Abstract):
     # Overwrite
     def getHouse(self,zipCode,house_type):
         if house_type == "sell":
+            print("sell")
             spider = self.getHouseSell
         elif house_type == 'rent':
+            print("rent")
             spider = self.getHouseRent
         return spider(zipCode)
 
@@ -136,8 +138,9 @@ if __name__ == '__main__':
     rs = Realtor_spider()
     house_list = []
     for zipCode in zip_code_list:
-        for house_type in house_list:
+        for house_type in house_type_list:
             house_list += rs.getHouse(zipCode,house_type)
+
     excel = Excel(r"D:\english_课程\House_scrapy\realtor.xlsx")
     excel.gen_excel(house_list)
 
