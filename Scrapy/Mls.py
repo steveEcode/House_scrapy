@@ -98,10 +98,11 @@ class Mls_scrapy():
             home_status = "for rent"
 
         for house in response.json()['listings']:
-            if self.transaction_type == "1":
-                unformattedPrice = house['soldPrice']
-            elif self.transaction_type == "2":
+            if "soldPrice" not in house.keys():
                 unformattedPrice = house['price']
+            else:
+                unformattedPrice = house['soldPrice']
+
             house_list.append(
                 {
                     "house_id":house['listing_id'],
