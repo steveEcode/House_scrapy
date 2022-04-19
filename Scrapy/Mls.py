@@ -21,6 +21,7 @@ class Mls_scrapy():
         'Accept-Language': 'zh-CN,zh;q=0.9'
     }
 
+
     def __init__(self,transaction_type):
         '''
         transaction_type = 1 for sale transaction_type = 2 str
@@ -67,9 +68,11 @@ class Mls_scrapy():
         country_id = cityDetail[0]['country_id']
         region_id = cityDetail[0]['region_id']
         city_id = cityDetail[0]['city_id']
-        # location_str = cityDetail['location_str']
 
-        api = f"https://api.globallistings.com/search?bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn={page_num}&pz=100&sort=package_id&sort_dir=desc&category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=100&sort=package_id&sort_dir=desc"
+        # location_str = cityDetail['location_str']
+        # api = f"https://api.globallistings.com/search?bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn={page_num}&pz=100&sort=package_id&sort_dir=desc&category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=100&sort=package_id&sort_dir=desc"
+        # api = f"https://api.globallistings.com/search?category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=100&sort=package_id&sort_dir=desc&category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=100&sort=package_id&sort_dir=desc"
+        api = f"https://api.globallistings.com/search?category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=36&sort=package_id&sort_dir=desc&category_id=1&transaction_type_id={self.transaction_type}&country_id={country_id}&region_id={region_id}&city_id={city_id}&bedrooms=&bathrooms=&min_price=&max_price=&min_size=&max_size=&size_unit=&commercial_lease_type=&residential_lease_type=&keywords=&pn=1&pz=36&sort=package_id&sort_dir=desc"
         response = requests.get(url=api,headers=self.headers)
         return self.parseHouseData(response,page_num)
 
@@ -78,6 +81,8 @@ class Mls_scrapy():
         :param response:
         :return: house_list,has_more
         '''
+        if len(response.text) == 0:
+           return [], False
 
         total_page = int(response.json()['meta']['page_number'])
         if page_num < total_page:
@@ -87,12 +92,21 @@ class Mls_scrapy():
 
         addressCity = response.json()['meta']['city_name']
         house_list = []
+        if self.transaction_type == "1":
+            home_status = "for sale"
+        elif self.transaction_type == "2":
+            home_status = "for rent"
+
         for house in response.json()['listings']:
+            if self.transaction_type == "1":
+                unformattedPrice = house['soldPrice']
+            elif self.transaction_type == "2":
+                unformattedPrice = house['price']
             house_list.append(
                 {
                     "house_id":house['listing_id'],
                     "detailUrl":'https://www.mls.com/Listings.mvc?lid=' + house['listing_id'],
-                    "unformattedPrice":house['price'],
+                    "unformattedPrice":unformattedPrice,
                     "address":house['street_address'],
                     "addressCity":addressCity,
                     "addressState":house['location'],
@@ -101,7 +115,8 @@ class Mls_scrapy():
                     "area":"Unknown",
                     "latitude":house['latitude'],
                     "longitude":house['longitude'],
-                    "Zipcode":"None"
+                    "Zipcode":"None",
+                    "homeStatus":home_status
                 }
             )
 
@@ -110,11 +125,14 @@ class Mls_scrapy():
 if __name__ == '__main__':
     from Excel_Tools.GenExcels import Excel
     city_list = ["Bryceville","Callahan","Yulee","Hilliard","Fernandina Beach"]
+    house_type_list = ["1","2"]
     houses = []
 
-    for city in city_list:
-        print(city)
-        spider = Mls_scrapy("1")
-        houses += spider.getHouse(city)
-    csv_path = r'D:\english_课程\demo.csv'
+
+    for house_type in house_type_list:
+        spider = Mls_scrapy(house_type)
+        for city in city_list:
+            houses += spider.getHouse(city)
+
+    csv_path = r'D:\english_课程\demo.xlsx'
     Excel(csv_path).gen_excel(houses)
